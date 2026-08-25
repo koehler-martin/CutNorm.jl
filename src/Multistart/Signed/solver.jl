@@ -1,3 +1,31 @@
+"""
+    MultistartSignedSolver(A::AbstractMatrix, subsolver = TronSolver; kwargs...)
+
+Build the multistart solver for the signed formulation of the cut norm of `A`, i.e.
+the solver behind `cutnorm(A; method = MultistartSigned{subsolver}())`.
+
+`subsolver` is the *type* of the local solver used in each restart:
+[`AlternatingLinearSearch`](@ref), `TronSolver`, or [`GreedySolver`](@ref). Any other
+`AbstractOptimizationSolver` raises an error. `kwargs` are forwarded to
+[`MultistartSettings`](@ref).
+
+The solver owns a [`SignedBilinearModel`](@ref), the subsolver and its statistics
+object, a Sobol sequence for the initial points, and the settings. All of it is
+reused, so calling [`solve!`](@ref) repeatedly allocates nothing new — but note that
+the Sobol sequence keeps advancing, so a second `solve!` explores different starting
+points than the first.
+
+# Examples
+
+```julia
+solver = MultistartSignedSolver(A, AlternatingLinearSearch; max_restarts = 200)
+sol = solve!(solver)
+sol = solve!(solver; max_restarts = 1000, print_level = 1)  # settings can be changed
+```
+
+See also [`cutnorm`](@ref), [`MultistartAugmentedSolver`](@ref),
+[`MultistartSignedSolution`](@ref), [`MultistartSettings`](@ref).
+"""
 mutable struct MultistartSignedSolver{
     T<:AbstractFloat,
     S1<:AbstractOptimizationSolver,
@@ -38,6 +66,23 @@ function MultistartSignedSolver(
     )
 end
 
+"""
+    solve!(solver::MultistartSignedSolver; kwargs...) -> MultistartSignedSolution
+    solve!(solver::MultistartSignedSolver, sol::MultistartSignedSolution; kwargs...)
+
+Run the multistart loop and return the solution. `kwargs` update the solver's
+[`MultistartSettings`](@ref) before the run, so options can be changed between
+solves.
+
+In each restart the next Sobol point is used as the initial guess and the local
+subsolver is called twice, once for the `+` and once for the `-` objective; the
+rounded results update the incumbent. The loop stops once `max_restarts` restarts
+have been done or `max_time` seconds have elapsed, and sets `termination_status`
+accordingly.
+
+The second form writes into the solution object you pass in (it is reset first),
+which lets you reuse the same storage across solves.
+"""
 function solve!(solver::MultistartSignedSolver{T}; kwargs...) where {T<:AbstractFloat}
     m, n = solver.model.data.dims
     sol = MultistartSignedSolution(T, m, n)
@@ -116,6 +161,14 @@ function solve!(solver::MultistartSignedSolver{T}, sol::MultistartSignedSolution
     return sol
 end
 
+"""
+    update_solution!(sol::MultistartSignedSolution, solver::MultistartSignedSolver)
+
+Round the subsolver's solution to the nearest vertex, evaluate the cut norm value it
+attains, and update `sol` if it beats the incumbent. Also appends to
+`sol.all_solutions` when `save_all_solutions` is set. Called once per sign and
+restart by [`solve!`](@ref).
+"""
 function update_solution!(sol::MultistartSignedSolution, solver::MultistartSignedSolver)
     model = solver.model
     subsolver_stats = solver.subsolver_stats

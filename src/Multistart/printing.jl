@@ -1,3 +1,10 @@
+"""
+    should_print(restart::Int) -> Bool
+
+Decide whether iteration `restart` is one of the logarithmically spaced iterations
+printed at `print_level = 2`: the first five, then every 10th up to 100, every 100th
+up to 1000, and so on.
+"""
 function should_print(restart::Int)
     restart <= 5 && return true
     magnitude = 10^floor(Int, log10(restart))

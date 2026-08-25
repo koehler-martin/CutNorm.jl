@@ -1,3 +1,30 @@
+"""
+    BruteForceSolver(A::AbstractMatrix; kwargs...)
+
+Build the exact enumeration solver for the cut norm of `A`, i.e. the solver behind
+`cutnorm(A; method = BruteForce())`. `kwargs` are forwarded to
+[`BruteForceSettings`](@ref).
+
+The solver keeps the matrix and three work vectors (`s`, `t` and `A*t`), so the
+enumeration itself does not allocate.
+
+The cost is `2^m * 2^n` objective evaluations. As a rule of thumb, keep `m + n` below
+roughly 30 unless you also set `max_time` — on a time-out the best value found so far
+is returned.
+
+# Examples
+
+```jldoctest
+julia> solver = BruteForceSolver(Float64[1 -1; -1 1]);
+
+julia> sol = solve!(solver);
+
+julia> sol.value, sol.iterations, sol.termination_status
+(1.0, 16, :optimal)
+```
+
+See also [`cutnorm`](@ref), [`BruteForce`](@ref), [`BruteForceSolution`](@ref).
+"""
 mutable struct BruteForceSolver{T<:AbstractFloat,M<:AbstractMatrix{T}} <: AbstractSolver{T}
     A::M
     s::Vector{T}
@@ -13,6 +40,21 @@ function BruteForceSolver(A::AbstractMatrix{T}; kwargs...) where {T<:AbstractFlo
     return BruteForceSolver(A, Vector{T}(undef, m), Vector{T}(undef, n), Vector{T}(undef, m), settings)
 end
 
+"""
+    solve!(solver::BruteForceSolver; kwargs...) -> BruteForceSolution
+    solve!(solver::BruteForceSolver, sol::BruteForceSolution; kwargs...)
+
+Enumerate all `2^m * 2^n` pairs of binary indicator vectors and return the solution.
+`kwargs` update the solver's [`BruteForceSettings`](@ref) before the run.
+
+The outer loop runs over the column indicators `t`, so the product `A*t` is formed
+once per `t` and reused for all `2^m` row indicators, leaving a dot product per pair.
+The run stops early if `max_time` is exceeded, in which case `termination_status`
+becomes `:max_time` instead of `:optimal`.
+
+The second form writes into the solution object you pass in (it is reset first),
+which lets you reuse the same storage across solves.
+"""
 function solve!(solver::BruteForceSolver{T}; kwargs...) where {T<:AbstractFloat}
     m, n = size(solver.A)
     sol = BruteForceSolution(T, m, n)
@@ -86,6 +128,13 @@ function solve!(solver::BruteForceSolver{T}, sol::BruteForceSolution{T}; kwargs.
     return sol
 end
 
+"""
+    fill_binary_vector!(v, k)
+
+Write the binary expansion of the integer `k` into `v`, least significant bit first,
+so that `v[i]` is bit `i-1` of `k`. Used to enumerate the `2^length(v)` indicator
+vectors.
+"""
 function fill_binary_vector!(v::AbstractVector, k::Integer)
     @inbounds for i in eachindex(v)
         v[i] = (k >> (i - 1)) & 1

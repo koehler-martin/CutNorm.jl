@@ -1,3 +1,32 @@
+"""
+    AlternatingLinearSearch(model::AbstractBilinearModel)
+
+Local subsolver for the bilinear relaxation, alternating between the two blocks of
+variables. This is the **default** subsolver of [`cutnorm`](@ref) and the fastest of
+the three.
+
+The objective is linear in `s` for fixed `t` and vice versa, so each block can be
+minimized exactly by moving every coordinate to the bound indicated by the sign of
+its partial gradient: `s[i] = 1` where `(A*t)[i] < 0` and `s[i] = 0` where it is
+positive, then the same for `t` with `A'*s`. Iterating this converges to a vertex
+that is optimal for both blocks. The construction allocates `x = [s; t]` and the two
+partial gradients once and reuses them.
+
+The solver implements the `SolverCore` interface, i.e. it is used as
+
+```julia
+solve!(solver, model, stats; x = x0, max_time = 30.0, verbose = 0)
+```
+
+with `stats::GenericExecutionStats`, and reset with `SolverCore.reset!`. Normally the
+multistart solvers do this for you — you only pass the type:
+
+```julia
+sol = cutnorm(A; method = MultistartSigned{AlternatingLinearSearch}())
+```
+
+See also [`GreedySolver`](@ref), `TronSolver`, [`MultistartSignedSolver`](@ref).
+"""
 mutable struct AlternatingLinearSearch{
     T<:AbstractFloat,
     V<:AbstractVector{T},
@@ -33,6 +62,23 @@ function SolverCore.reset!(solver::AlternatingLinearSearch)
     fill!(solver.gt, 0)
 end
 
+"""
+    solve!(solver::AlternatingLinearSearch, model, stats; x, max_iter, max_time, verbose)
+
+Run the alternating block minimization on `model` from the starting point `x`
+(clamped into the bounds) and write the result into `stats`.
+
+# Keywords
+
+- `x`: initial guess, defaults to `model.meta.x0`,
+- `max_iter`: iteration limit, unlimited by default,
+- `max_time`: time limit in seconds, `30.0` by default,
+- `verbose`: `0` is silent, `k > 0` logs every `k`-th iteration.
+
+Errors if `model` is not a bound-constrained or unconstrained minimization problem.
+`stats.status` is `:first_order` when the vertex reached is optimal for both blocks,
+otherwise the limit that was hit.
+"""
 function SolverCore.solve!(solver::AlternatingLinearSearch{T,V},
     model::AbstractBilinearModel{T,V},
     stats::GenericExecutionStats{T,V};
@@ -144,6 +190,15 @@ function SolverCore.solve!(solver::AlternatingLinearSearch{T,V},
     return stats
 end
 
+"""
+    is_optimal(gs, s, gt, t, ℓ, u) -> Bool
+
+Check the first-order condition of the bound-constrained bilinear problem at the
+point `[s; t]` with partial gradients `gs` and `gt` and bounds `ℓ`, `u`: every
+coordinate with a negative partial derivative must sit at its upper bound, every
+coordinate with a positive one at its lower bound. The bounds are indexed as in the
+stacked variable, i.e. `t[j]` is compared against `ℓ[m+j]` and `u[m+j]`.
+"""
 function is_optimal(gs, s, gt, t, ℓ, u)
     m = length(s)
     for i in eachindex(s)

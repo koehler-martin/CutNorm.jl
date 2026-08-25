@@ -1,3 +1,28 @@
+"""
+    ILPSolver(A::AbstractMatrix, optimizer; kwargs...)
+
+Build the exact MILP solver for the cut norm of `A`, i.e. the solver behind
+`cutnorm(A; method = ILP(optimizer))`. `optimizer` is a JuMP optimizer constructor
+such as `HiGHS.Optimizer`; `kwargs` are forwarded to [`ILPSettings`](@ref).
+
+The JuMP model is built **once**, here, by [`CutNorm.build_ilp_model`](@ref), and
+stored in the solver. A later [`solve!`](@ref) only re-runs `JuMP.optimize!`, so
+repeated solves — e.g. with a larger `max_time` — skip the model construction. The
+model is available as `solver.model` if you want to inspect it or set solver-specific
+attributes.
+
+# Examples
+
+```julia
+using HiGHS
+solver = ILPSolver(A, HiGHS.Optimizer; max_time = 60.0, print_level = 1)
+sol = solve!(solver)
+sol = solve!(solver; max_time = 600.0)   # continue with a larger budget
+```
+
+See also [`cutnorm`](@ref), [`ILP`](@ref), [`ILPSolution`](@ref),
+[`ILPSettings`](@ref).
+"""
 mutable struct ILPSolver{T<:AbstractFloat,M<:AbstractMatrix{T}} <: AbstractSolver{T}
     A::M
     optimizer
@@ -67,6 +92,22 @@ function ILPSolver(A::AbstractMatrix{T}, optimizer; kwargs...) where {T<:Abstrac
     return ILPSolver(A, optimizer, model, settings)
 end
 
+"""
+    solve!(solver::ILPSolver; kwargs...) -> ILPSolution
+    solve!(solver::ILPSolver, sol::ILPSolution; kwargs...)
+
+Optimize the stored MILP model and return the solution. `kwargs` update the solver's
+[`ILPSettings`](@ref) before the run.
+
+`max_time` is passed to the solver with `JuMP.set_time_limit_sec` and `print_level`
+decides whether the model is silenced, so both take effect on every call. If the
+solver produced values, the binary indicators are rounded into `sol.S` and `sol.T`
+and the objective is stored in `sol.value`; otherwise those fields stay zero and only
+`termination_status`, `solve_time` and `runtime` are meaningful.
+
+The second form writes into the solution object you pass in (it is reset first),
+which lets you reuse the same storage across solves.
+"""
 function solve!(solver::ILPSolver{T}; kwargs...) where {T<:AbstractFloat}
     m, n = size(solver.A)
     sol = ILPSolution(T, m, n)

@@ -1,3 +1,34 @@
+"""
+    CutNorm
+
+Compute the cut norm of a matrix,
+
+```math
+\\|A\\|_{\\square} = \\max_{S \\subseteq [m],\\, T \\subseteq [n]}
+                  \\left| \\sum_{i \\in S, j \\in T} A_{ij} \\right|,
+```
+
+either heuristically, by multistart nonlinear optimization of the bilinear relaxation
+over `[0,1]^m × [0,1]^n`, or exactly, by enumeration or by an integer/quadratic
+program solved through [JuMP](https://jump.dev/).
+
+The entry point is [`cutnorm`](@ref); the method is chosen with its `method` keyword,
+and all further keywords configure the settings object of that method:
+
+```julia
+using CutNorm
+
+sol = cutnorm(A)                                    # default heuristic
+sol = cutnorm(A; method = BruteForce())             # exact, small matrices
+sol = cutnorm(A; method = ILP(HiGHS.Optimizer))     # exact, via a MILP solver
+```
+
+For repeated solves of the same matrix, build a solver — [`MultistartSignedSolver`](@ref),
+[`MultistartAugmentedSolver`](@ref), [`BruteForceSolver`](@ref), [`INLPSolver`](@ref),
+[`ILPSolver`](@ref), [`QUBOSolver`](@ref) — and call [`solve!`](@ref) on it.
+
+See the documentation at <https://koehler-martin.github.io/CutNorm.jl> for details.
+"""
 module CutNorm
 
 # Standard library
