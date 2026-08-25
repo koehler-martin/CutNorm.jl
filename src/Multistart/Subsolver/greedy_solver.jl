@@ -1,3 +1,31 @@
+"""
+    GreedySolver(model::AbstractBilinearModel)
+
+Local subsolver for the bilinear relaxation that improves one coordinate at a time.
+
+The starting point is rounded to the nearest vertex of the box, then in every
+iteration the single bit flip with the most negative predicted change `Δ * g[i]` is
+applied, until no flip improves the objective any more — a local optimum with respect
+to single flips. Because only one coordinate changes per step, the gradient is updated
+incrementally with one row or column of `A` instead of being recomputed. The
+construction allocates `x = [s; t]` and the full gradient once and reuses them.
+
+The solver implements the `SolverCore` interface, i.e. it is used as
+
+```julia
+solve!(solver, model, stats; x = x0, max_time = 30.0, verbose = 0)
+```
+
+with `stats::GenericExecutionStats`, and reset with `SolverCore.reset!`. Normally the
+multistart solvers do this for you — you only pass the type:
+
+```julia
+sol = cutnorm(A; method = MultistartSigned{GreedySolver}())
+```
+
+See also [`AlternatingLinearSearch`](@ref), `TronSolver`,
+[`MultistartSignedSolver`](@ref).
+"""
 mutable struct GreedySolver{
     T<:AbstractFloat,
     V<:AbstractVector{T},
@@ -19,6 +47,23 @@ function SolverCore.reset!(solver::GreedySolver)
     fill!(solver.g, 0)
 end
 
+"""
+    solve!(solver::GreedySolver, model, stats; x, max_iter, max_time, verbose)
+
+Run the greedy single-flip descent on `model`, starting from `x` rounded to the
+nearest vertex, and write the result into `stats`.
+
+# Keywords
+
+- `x`: initial guess, defaults to `model.meta.x0`,
+- `max_iter`: iteration limit, unlimited by default,
+- `max_time`: time limit in seconds, `30.0` by default,
+- `verbose`: `0` is silent, `k > 0` logs every `k`-th iteration.
+
+Errors if `model` is not a bound-constrained or unconstrained minimization problem.
+`stats.status` reports first-order optimality once no single flip improves the
+objective, otherwise the limit that was hit.
+"""
 function SolverCore.solve!(solver::GreedySolver{T,V},
     model::AbstractBilinearModel{T,V},
     stats::GenericExecutionStats{T,V};

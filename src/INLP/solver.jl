@@ -1,3 +1,27 @@
+"""
+    INLPSolver(A::AbstractMatrix, optimizer; kwargs...)
+
+Build the exact integer-nonlinear solver for the cut norm of `A`, i.e. the solver
+behind `cutnorm(A; method = INLP(optimizer))`. `optimizer` is a JuMP optimizer
+constructor for a global MINLP solver such as `Gurobi.Optimizer`; `kwargs` are
+forwarded to [`INLPSettings`](@ref).
+
+The JuMP model is built **once**, here, by [`CutNorm.build_model`](@ref), and stored
+in the solver. A later [`solve!`](@ref) only re-runs `JuMP.optimize!`, so repeated
+solves skip the model construction. The model is available as `solver.model` if you
+want to inspect it or set solver-specific attributes.
+
+# Examples
+
+```julia
+using Gurobi
+solver = INLPSolver(A, Gurobi.Optimizer; max_time = 60.0, print_level = 2)
+sol = solve!(solver)
+```
+
+See also [`cutnorm`](@ref), [`INLP`](@ref), [`INLPSolution`](@ref),
+[`INLPSettings`](@ref).
+"""
 mutable struct INLPSolver{T<:AbstractFloat,M<:AbstractMatrix{T}} <: AbstractSolver{T}
     A::M
     optimizer
@@ -30,6 +54,22 @@ function INLPSolver(A::AbstractMatrix{T}, optimizer; kwargs...) where {T<:Abstra
     return INLPSolver(A, optimizer, model, settings)
 end
 
+"""
+    solve!(solver::INLPSolver; kwargs...) -> INLPSolution
+    solve!(solver::INLPSolver, sol::INLPSolution; kwargs...)
+
+Optimize the stored integer nonlinear model and return the solution. `kwargs` update
+the solver's [`INLPSettings`](@ref) before the run.
+
+`max_time` is passed to the solver with `JuMP.set_time_limit_sec` and `print_level`
+decides whether the model is silenced, so both take effect on every call. If the
+solver produced values, the binary indicators are rounded into `sol.S` and `sol.T`
+and the objective is stored in `sol.value`; otherwise those fields stay zero and only
+`termination_status`, `solve_time` and `runtime` are meaningful.
+
+The second form writes into the solution object you pass in (it is reset first),
+which lets you reuse the same storage across solves.
+"""
 function solve!(solver::INLPSolver{T}; kwargs...) where {T<:AbstractFloat}
     m, n = size(solver.A)
     sol = INLPSolution(T, m, n)

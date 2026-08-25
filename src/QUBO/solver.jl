@@ -1,3 +1,28 @@
+"""
+    QUBOSolver(A::AbstractMatrix, optimizer; kwargs...)
+
+Build the exact binary-quadratic solver for the cut norm of `A`, i.e. the solver
+behind `cutnorm(A; method = QUBO(optimizer))`. `optimizer` is a JuMP optimizer
+constructor for a solver that accepts nonconvex binary-quadratic objectives, such as
+`Gurobi.Optimizer`; `kwargs` are forwarded to [`QUBOSettings`](@ref).
+
+The JuMP model is built **once**, here, by [`CutNorm.build_qubo_model`](@ref) — on the
+augmented `(m+1) x (n+1)` matrix — and stored in the solver. A later [`solve!`](@ref)
+only re-runs `JuMP.optimize!`, so repeated solves skip the model construction. The
+model is available as `solver.model` if you want to inspect it or set solver-specific
+attributes.
+
+# Examples
+
+```julia
+using Gurobi
+solver = QUBOSolver(A, Gurobi.Optimizer; max_time = 60.0)
+sol = solve!(solver)
+```
+
+See also [`cutnorm`](@ref), [`QUBO`](@ref), [`QUBOSolution`](@ref),
+[`QUBOSettings`](@ref).
+"""
 mutable struct QUBOSolver{T<:AbstractFloat,M<:AbstractMatrix{T}} <: AbstractSolver{T}
     A::M
     optimizer
@@ -38,6 +63,23 @@ function QUBOSolver(A::AbstractMatrix{T}, optimizer; kwargs...) where {T<:Abstra
     return QUBOSolver(A, optimizer, model, settings)
 end
 
+"""
+    solve!(solver::QUBOSolver; kwargs...) -> QUBOSolution
+    solve!(solver::QUBOSolver, sol::QUBOSolution; kwargs...)
+
+Optimize the stored binary-quadratic model and return the solution. `kwargs` update
+the solver's [`QUBOSettings`](@ref) before the run.
+
+`max_time` is passed to the solver with `JuMP.set_time_limit_sec` and `print_level`
+decides whether the model is silenced, so both take effect on every call. If the
+solver produced values, the augmented indicators are rounded, reduced to the original
+dimensions using the two pivot bits, and stored in `sol.S` and `sol.T`; otherwise
+those fields stay zero and only `termination_status`, `solve_time` and `runtime` are
+meaningful.
+
+The second form writes into the solution object you pass in (it is reset first),
+which lets you reuse the same storage across solves.
+"""
 function solve!(solver::QUBOSolver{T}; kwargs...) where {T<:AbstractFloat}
     m, n = size(solver.A)
     sol = QUBOSolution(T, m, n)

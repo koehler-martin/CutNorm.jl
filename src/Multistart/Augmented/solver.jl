@@ -1,3 +1,32 @@
+"""
+    MultistartAugmentedSolver(A::AbstractMatrix, subsolver = TronSolver; kwargs...)
+
+Build the multistart solver for the augmented formulation of the cut norm of `A`,
+i.e. the solver behind `cutnorm(A; method = MultistartAugmented{subsolver}())`.
+
+The matrix is augmented once, at construction time, with
+[`CutNorm.augment_matrix`](@ref); the internal [`BilinearModel`](@ref) therefore has
+dimension `(m+1) + (n+1)`. `subsolver` is the *type* of the local solver used in each
+restart: [`AlternatingLinearSearch`](@ref), `TronSolver`, or [`GreedySolver`](@ref).
+Any other `AbstractOptimizationSolver` raises an error. `kwargs` are forwarded to
+[`MultistartSettings`](@ref).
+
+The solver owns the model, the subsolver and its statistics object, a Sobol sequence
+for the initial points, and the settings. All of it is reused, so calling
+[`solve!`](@ref) repeatedly allocates nothing new — but note that the Sobol sequence
+keeps advancing, so a second `solve!` explores different starting points than the
+first.
+
+# Examples
+
+```julia
+solver = MultistartAugmentedSolver(A, AlternatingLinearSearch; max_restarts = 200)
+sol = solve!(solver)
+```
+
+See also [`cutnorm`](@ref), [`MultistartSignedSolver`](@ref),
+[`MultistartAugmentedSolution`](@ref), [`MultistartSettings`](@ref).
+"""
 mutable struct MultistartAugmentedSolver{
     T<:AbstractFloat,
     S1<:AbstractOptimizationSolver,
@@ -40,6 +69,22 @@ function MultistartAugmentedSolver(
     )
 end
 
+"""
+    solve!(solver::MultistartAugmentedSolver; kwargs...) -> MultistartAugmentedSolution
+    solve!(solver::MultistartAugmentedSolver, sol::MultistartAugmentedSolution; kwargs...)
+
+Run the multistart loop on the augmented model and return the solution. `kwargs`
+update the solver's [`MultistartSettings`](@ref) before the run, so options can be
+changed between solves.
+
+In each restart the next Sobol point is used as the initial guess, the local
+subsolver is called once, and the rounded result updates the incumbent. The loop
+stops once `max_restarts` restarts have been done or `max_time` seconds have elapsed,
+and sets `termination_status` accordingly.
+
+The second form writes into the solution object you pass in (it is reset first),
+which lets you reuse the same storage across solves.
+"""
 function solve!(solver::MultistartAugmentedSolver{T}; kwargs...) where {T<:AbstractFloat}
     m, n = solver.model.data.dims
     sol = MultistartAugmentedSolution(T, m - 1, n - 1)
@@ -103,6 +148,15 @@ function solve!(solver::MultistartAugmentedSolver{T}, sol::MultistartAugmentedSo
     return sol
 end
 
+"""
+    update_solution!(sol::MultistartAugmentedSolution, solver::MultistartAugmentedSolver)
+
+Round the subsolver's solution to the nearest vertex, evaluate the cut norm value it
+attains, and update `sol` if it beats the incumbent. The augmented indicators are
+reduced to the original dimensions with [`CutNorm.fill_ST!`](@ref). Also appends to
+`sol.all_solutions` when `save_all_solutions` is set. Called once per restart by
+[`solve!`](@ref).
+"""
 function update_solution!(sol::MultistartAugmentedSolution, solver::MultistartAugmentedSolver)
     model = solver.model
     subsolver_stats = solver.subsolver_stats
@@ -133,6 +187,18 @@ function update_solution!(sol::MultistartAugmentedSolution, solver::MultistartAu
     end
 end
 
+"""
+    fill_ST!(S, T, x)
+
+Extract the indicator vectors of the original matrix from a solution `x` of the
+augmented model, where `length(x) == length(S) + length(T) + 2`.
+
+The entries `x[m+1]` and `x[m+n+2]` are the pivot bits belonging to the augmented row
+and column. XOR-ing the remaining entries with them (here `abs(x[i] - f)`, since the
+entries are `0` or `1`) normalizes the solution against the global bit-flip symmetry
+of the augmented problem, so that `S` and `T` describe the same cut in the original
+matrix. Throws a `DimensionMismatch` if the lengths do not fit.
+"""
 function fill_ST!(S::AbstractVector, T::AbstractVector, x::AbstractVector)
     m = length(S)
     n = length(T)

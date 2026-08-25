@@ -63,7 +63,10 @@ makedocs(;
     authors = "Martin Köhler, Christian Kirches",
     repo = "https://github.com/koehler-martin/CutNorm.jl/blob/{commit}{path}#{line}",
     sitename = "CutNorm.jl",
-    format = Documenter.HTML(; canonical = "https://koehler-martin.github.io/CutNorm.jl"),
+    format = Documenter.HTML(;
+        canonical = "https://koehler-martin.github.io/CutNorm.jl",
+        repolink = "https://github.com/koehler-martin/CutNorm.jl",
+    ),
     pages = list_pages(),
 )
 

@@ -1,8 +1,11 @@
 """
-    obj(nlp, x)
+    _obj(nlp, x)
 
 Evaluate the bilinear objective `f(x) = σ·s'At`, where `s = x[1:m]`, `t = x[m+1:m+n]`,
 and `σ = sign(nlp)`.
+
+Shared implementation behind the `NLPModels.obj` methods of [`BilinearModel`](@ref)
+and [`SignedBilinearModel`](@ref).
 """
 function _obj(nlp::AbstractBilinearModel, x::AbstractVector)
     NLPModels.increment!(nlp, :neval_obj)
@@ -22,7 +25,7 @@ function NLPModels.obj(nlp::SignedBilinearModel, x::AbstractVector)
 end
 
 """
-    grad!(nlp, x, g)
+    _grad!(nlp, x, g)
 
 Compute the gradient `g = σ·[A*t; A'*s]` in-place.
 """
@@ -65,7 +68,7 @@ function NLPModels.grad!(
 end
 
 """
-    objgrad!(nlp, x, g)
+    _objgrad!(nlp, x, g)
 
 Compute the objective and gradient simultaneously. Returns `(σ·s'At, g)`.
 """
@@ -112,7 +115,7 @@ function NLPModels.objgrad!(
 end
 
 """
-    hprod!(nlp, x, v, Hv; obj_weight=1.0)
+    _hprod!(nlp, x, v, Hv; obj_weight=1.0)
 
 Hessian-vector product `Hv = obj_weight·σ·[A*v_t; A'*v_s]`. The Hessian is constant.
 """
@@ -161,9 +164,9 @@ function NLPModels.hprod!(
 end
 
 """
-    grad_s!(nlp, t, gs)
+    _grad_s!(nlp, t, gs)
 
-Partial gradient w.r.t. `s`: `gs = σ·A*t`.
+Unsigned part of [`grad_s!`](@ref): `gs = A*t`, without applying `sign(nlp)`.
 """
 function _grad_s!(nlp::AbstractBilinearModel, t::AbstractVector, gs::AbstractVector)
     @lencheck nlp.data.dims[2] t
@@ -175,6 +178,37 @@ function _grad_s!(nlp::AbstractBilinearModel, t::AbstractVector, gs::AbstractVec
     return gs
 end
 
+"""
+    grad_s!(nlp, t, gs) -> gs
+
+Partial gradient of the bilinear objective with respect to the row block `s`, written
+in place into `gs`:
+
+    gs = σ·A*t,   σ = sign(nlp).
+
+Only the `t` block is needed, and `length(t)` must be `n` while `length(gs)` must be
+`m`; a `DimensionMismatch` is raised otherwise. Counted as one gradient evaluation in
+the model's counters.
+
+Because the objective is linear in `s` for fixed `t`, this gradient alone determines
+the optimal `s` over the box — that is what [`AlternatingLinearSearch`](@ref) uses it
+for.
+
+# Examples
+
+```jldoctest
+julia> nlp = BilinearModel(Float64[1 -1; -1 1]);
+
+julia> gs = zeros(2);
+
+julia> grad_s!(nlp, [1.0, 0.0], gs)
+2-element Vector{Float64}:
+  1.0
+ -1.0
+```
+
+See also [`grad_t!`](@ref), [`BilinearModel`](@ref), [`SignedBilinearModel`](@ref).
+"""
 function grad_s!(nlp::BilinearModel, t::AbstractVector, gs::AbstractVector)
     _grad_s!(nlp, t, gs)
 end
@@ -185,9 +219,9 @@ function grad_s!(nlp::SignedBilinearModel, t::AbstractVector, gs::AbstractVector
 end
 
 """
-    grad_t!(nlp, s, gt)
+    _grad_t!(nlp, s, gt)
 
-Partial gradient w.r.t. `t`: `gt = σ·A'*s`.
+Unsigned part of [`grad_t!`](@ref): `gt = A'*s`, without applying `sign(nlp)`.
 """
 function _grad_t!(nlp::AbstractBilinearModel, s::AbstractVector, gt::AbstractVector)
     @lencheck nlp.data.dims[1] s
@@ -199,6 +233,37 @@ function _grad_t!(nlp::AbstractBilinearModel, s::AbstractVector, gt::AbstractVec
     return gt
 end
 
+"""
+    grad_t!(nlp, s, gt) -> gt
+
+Partial gradient of the bilinear objective with respect to the column block `t`,
+written in place into `gt`:
+
+    gt = σ·A'*s,   σ = sign(nlp).
+
+Only the `s` block is needed, and `length(s)` must be `m` while `length(gt)` must be
+`n`; a `DimensionMismatch` is raised otherwise. Counted as one gradient evaluation in
+the model's counters.
+
+Because the objective is linear in `t` for fixed `s`, this gradient alone determines
+the optimal `t` over the box — that is what [`AlternatingLinearSearch`](@ref) uses it
+for.
+
+# Examples
+
+```jldoctest
+julia> nlp = BilinearModel(Float64[1 -1; -1 1]);
+
+julia> gt = zeros(2);
+
+julia> grad_t!(nlp, [1.0, 0.0], gt)
+2-element Vector{Float64}:
+  1.0
+ -1.0
+```
+
+See also [`grad_s!`](@ref), [`BilinearModel`](@ref), [`SignedBilinearModel`](@ref).
+"""
 function grad_t!(nlp::BilinearModel, s::AbstractVector, gt::AbstractVector)
     _grad_t!(nlp, s, gt)
 end
