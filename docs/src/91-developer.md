@@ -130,8 +130,29 @@ CI runs the doctests before deploying, in `.github/workflows/Docs.yml`.
 ### Deployment
 
 `docs/make.jl` ends in `deploydocs`, which pushes the built site to the `gh-pages`
-branch. This needs either a `DOCUMENTER_KEY` secret in the repository or a `gh-pages`
-branch writable with the default `GITHUB_TOKEN`. To create the key pair, run
+branch. Documenter authenticates that push with a `DOCUMENTER_KEY` secret if one is
+set, and otherwise with the workflow's `GITHUB_TOKEN`. The token route is what this
+repository uses, which is why the docs job in `.github/workflows/Docs.yml` declares
+
+```yaml
+permissions:
+  contents: write
+```
+
+Without that grant the token is read-only and the push fails with
+`Write access to repository not granted` and HTTP 403, *after* an otherwise successful
+build — so a green build log up to `Deploying: ✔` followed by a 403 is a permissions
+problem, not a docs problem.
+
+Two things are configured outside the repository and cannot be fixed in a commit:
+
+- **GitHub Pages** must be set to deploy from a branch, `gh-pages` at `/ (root)`, under
+  Settings → Pages. `deploydocs` creates the branch on its first successful run.
+- the repository's **default workflow permissions** (Settings → Actions → General) must
+  not be restricted below what the job asks for.
+
+The alternative to the token is a deploy key, which is what a fork without write access
+to `gh-pages` needs. Generate the pair with
 
 ```julia
 using DocumenterTools
@@ -139,7 +160,8 @@ DocumenterTools.genkeys(user = "koehler-martin", repo = "CutNorm.jl")
 ```
 
 and follow its instructions: the private half goes into the repository's Actions secrets
-as `DOCUMENTER_KEY`, the public half becomes a deploy key with write access.
+as `DOCUMENTER_KEY`, the public half becomes a deploy key with write access. The
+workflow already passes `DOCUMENTER_KEY` through, so nothing else has to change.
 
 ## Formatting and linting
 
