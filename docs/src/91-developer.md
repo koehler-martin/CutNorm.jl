@@ -165,7 +165,10 @@ workflow already passes `DOCUMENTER_KEY` through, so nothing else has to change.
 
 ## Formatting and linting
 
-The repository ships configuration for several tools, all of them also run in CI:
+The repository ships configuration for several tools. Note that **none of them is
+currently run automatically**: there is no lint workflow in `.github/workflows/` and no
+`.pre-commit-config.yaml`, so these files only take effect when your editor picks them
+up or when you invoke the tool yourself.
 
 | Tool                                                        | Config                | Scope             |
 |:------------------------------------------------------------|:----------------------|:------------------|
