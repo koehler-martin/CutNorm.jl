@@ -2,10 +2,9 @@
 CurrentModule = CutNorm
 ```
 
-# CutNorm.jl
+# Home
 
-Documentation for [CutNorm.jl](https://github.com/koehler-martin/CutNorm.jl), a Julia
-package for computing the **cut norm** of a matrix.
+The package [CutNorm.jl](https://github.com/koehler-martin/CutNorm.jl) implements several approaches to compute the **cut norm** of a matrix in the Julia language.
 
 For a matrix ``A \in \mathbb{R}^{m \times n}`` the cut norm is
 
@@ -16,15 +15,12 @@ For a matrix ``A \in \mathbb{R}^{m \times n}`` the cut norm is
 
 Computing it is NP-hard, so CutNorm.jl offers two families of methods:
 
-- **heuristic** — the combinatorial problem is relaxed to a bilinear program over
-  ``[0,1]^m \times [0,1]^n`` and solved from many quasi-random (Sobol) starting
-  points. Every local solution is a valid cut, so the result is always a lower bound
-  attained by concrete sets ``S`` and ``T``.
-- **exact** — by exhaustive enumeration, or by handing an integer or quadratic
-  formulation to a solver of your choice through [JuMP](https://jump.dev/).
+- **heuristic** — the combinatorial problem is relaxed to a bilinear program over ``[0,1]^m \times [0,1]^n`` and solved from many quasi-random (Sobol) starting points. Every local solution is a feasible assignment of rows and columns, so the result is always a lower bound attained by concrete sets ``S`` and ``T``.
+- **exact** — by exhaustive enumeration, or by handing an integer or quadratic formulation to a solver of your choice through [JuMP](https://jump.dev/).
 
 ## Installation
 
+CutNorm.jl can be installed via the following:
 ```julia
 using Pkg
 Pkg.add("CutNorm")
@@ -62,11 +58,10 @@ is what `sol.S` and `sol.T` report.
 | [Options](30-options.md)                    | Every keyword argument, per method                               |
 | [Solution objects](40-solutions.md)         | What comes back from a solve                                     |
 | [Advanced usage](50-advanced.md)            | Reusing solvers, the JuMP models, the NLPModel interface         |
-| [Developer docs](91-developer.md)           | Tests, docs, formatting                                          |
 | [Reference](95-reference.md)                | The public API                                                   |
 | [Internals](96-internals.md)                | Everything not exported                                          |
 
-## Author and acknowledgements
+## Author and Acknowledgements
 
 This package was written by
 [Martin Köhler](https://www.tu-braunschweig.de/en/mo/team/koehler) at TU Braunschweig.

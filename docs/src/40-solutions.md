@@ -4,9 +4,8 @@ CurrentModule = CutNorm
 
 # Solution objects
 
-[`cutnorm`](@ref) and [`solve!`](@ref) return a solution object whose type depends on
-the method. They all share a core set of fields, and add whatever else their method can
-report.
+[`cutnorm`](@ref) and [`solve!`](@ref) return a solution object whose type depends on the method.
+They all share a core set of fields, and add whatever else their method can report.
 
 ## Common fields
 
@@ -18,9 +17,8 @@ report.
 | `runtime`            | Total elapsed wall-clock time in seconds                            |
 | `termination_status` | Why the solver stopped                                              |
 
-`S` has length `m` and `T` has length `n`, also for the augmented methods, which map
-their extra pivot bits away before reporting. `findall(isone, sol.S)` turns an
-indicator into an index set:
+`S` has length `m` and `T` has length `n`, also for the augmented methods, which map their extra pivot bits away before reporting.
+`findall(isone, sol.S)` turns an indicator into an index set:
 
 ```jldoctest sol
 julia> using CutNorm
@@ -48,8 +46,8 @@ julia> findall(isone, sol.S), findall(isone, sol.T)
 | `:unknown`       | The solution has not been used yet                                 |
 | other `Symbol`   | A JuMP/MOI status name, for the solver-based methods                |
 
-Only `:optimal` certifies a value as the true cut norm. Everything else is a lower
-bound — a valid one, attained by the reported sets:
+Only `:optimal` certifies a value as the true cut norm.
+Everything else is a lower bound, a valid one, attained by the reported sets:
 
 ```jldoctest sol
 julia> abs(sum(A[findall(isone, sol.S), findall(isone, sol.T)])) == sol.value
@@ -58,8 +56,7 @@ true
 
 ## Multistart solutions
 
-[`MultistartSignedSolution`](@ref) and [`MultistartAugmentedSolution`](@ref) add the
-history of the multistart loop.
+[`MultistartSignedSolution`](@ref) and [`MultistartAugmentedSolution`](@ref) add the history of the multistart loop.
 
 | Field                | Description                                                       |
 |:---------------------|:------------------------------------------------------------------|
@@ -70,8 +67,7 @@ history of the multistart loop.
 | `all_solutions`      | Per-subproblem `(objective, S, T)` tuples, if `save_all_solutions` |
 | `sign`               | Sign ``\pm 1`` of the winning objective (signed method only)       |
 
-`improvements` and `best_restart` are the practical way to size the budget: if the last
-improvement came early, further restarts are unlikely to help.
+`improvements` and `best_restart` are the practical way to size the budget: if the last improvement came early, further restarts are unlikely to help.
 
 ```jldoctest sol
 julia> sol = cutnorm(A; max_restarts = 10);
@@ -83,9 +79,7 @@ julia> sol.sign
 -1
 ```
 
-With `save_all_solutions = true`, every subproblem is recorded — one entry per restart
-for the augmented method, two for the signed method, which solves both signs per
-restart:
+With `save_all_solutions = true`, every subproblem is recorded, one entry per restart for the augmented method, two for the signed method, which solves both signs per restart:
 
 ```jldoctest sol
 julia> sol = cutnorm(A; max_restarts = 4, save_all_solutions = true);
@@ -97,8 +91,7 @@ julia> sol.all_solutions[1].objective
 1.0
 ```
 
-`best_initial_guess` has length `m + n` for the signed method and `m + n + 2` for the
-augmented one, matching the model each of them solves.
+`best_initial_guess` has length `m + n` for the signed method and `m + n + 2` for the augmented one, matching the model each of them solves.
 
 ## Brute-force solutions
 
@@ -121,19 +114,14 @@ julia> sol.iterations, sol.termination_status
 
 ## Solutions of the JuMP methods
 
-[`INLPSolution`](@ref), [`ILPSolution`](@ref) and [`QUBOSolution`](@ref) have identical
-fields: the common ones plus the solver's own timing.
+[`INLPSolution`](@ref), [`ILPSolution`](@ref) and [`QUBOSolution`](@ref) have identical fields: the common ones plus the solver's own timing.
 
 | Field        | Description                                             |
 |:-------------|:--------------------------------------------------------|
 | `solve_time` | Time reported by the solver itself, `JuMP.solve_time`    |
 
-`runtime` measures the whole [`solve!`](@ref) call, so the difference between the two is
-the overhead of applying settings and reading the solution back — the model itself is
-built once when the solver is constructed, not here.
+`runtime` measures the whole [`solve!`](@ref) call, so the difference between the two is the overhead of applying settings and reading the solution back, the model itself is built once when the solver is constructed, not here.
 
-For these methods, always look at `termination_status` first. If the solver returned no
-values at all — infeasible, interrupted, or out of time before finding an incumbent —
-then `value`, `S` and `T` are left at zero rather than filled with something
-meaningless. The status is `:optimal` or `:max_time` where those apply, and otherwise
-the MOI status name as a `Symbol`, for example `:INFEASIBLE`.
+For these methods, always look at `termination_status` first.
+If the solver returned no values at all, infeasible, interrupted, or out of time before finding an incumbent, then `value`, `S` and `T` are left at zero rather than filled with something meaningless.
+The status is `:optimal` or `:max_time` where those apply, and otherwise the MOI status name as a `Symbol`, for example `:INFEASIBLE`.
