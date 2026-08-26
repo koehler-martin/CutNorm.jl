@@ -63,7 +63,7 @@ The parametric type `S` denotes a specific subsolver.
 |---|---|
 | `AlternatingLinearSearch` | Fast coordinate-descent alternating between $s$ and $t$. **(default)** |
 | `TronSolver` | Trust-region Newton method (from JSOSolvers.jl). Most accurate locally. |
-| `GreedySolver` | Greedy single-coordinate flip with incremental gradient updates. |
+| `GreedySolver` | Greedy single-coordinate flip with incremental gradient updates. *(not recommended)* |
 
 
 ### Exact Methods
