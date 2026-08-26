@@ -23,8 +23,7 @@ sol = cutnorm(A; method = MultistartSigned{TronSolver}())
 | [`INLP(optimizer)`](@ref INLP)                  | exact        | global MINLP solver               | comparing formulations |
 | [`QUBO(optimizer)`](@ref QUBO)                  | exact        | nonconvex binary-quadratic solver | comparing formulations |
 
-The heuristic methods return a valid cut in every case, so their value is always a
-lower bound on ``\|A\|_\square``.
+The heuristic methods return a valid cut in every case, so their value is always a lower bound on ``\lVert A\rVert_\square``, attained by the reported sets.
 The exact methods return the true cut norm, but only if they ran to completion: check `termination_status == :optimal` before treating a value as exact.
 
 ## The relaxation

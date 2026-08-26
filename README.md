@@ -3,7 +3,6 @@
 [![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://koehler-martin.github.io/CutNorm.jl/stable)
 [![Development documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://koehler-martin.github.io/CutNorm.jl/dev)
 [![Test workflow status](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Test.yml/badge.svg?branch=main)](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Test.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/koehler-martin/CutNorm.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/koehler-martin/CutNorm.jl)
 [![Docs workflow Status](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Docs.yml/badge.svg?branch=main)](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Docs.yml?query=branch%3Amain)
 [![BestieTemplate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JuliaBesties/BestieTemplate.jl/main/docs/src/assets/badge.json)](https://github.com/JuliaBesties/BestieTemplate.jl)
 
@@ -14,7 +13,7 @@ A Julia package for computing the **cut norm** of matrices using multistart nonl
 
 Given a matrix $A \in \mathbb{R}^{m \times n}$, the cut norm is defined as
 
-$$\|A\|_{\square} = \max_{S \subseteq [m],\; T \subseteq [n]} \left| \sum_{i \in S, j \in T} A_{ij} \right|$$
+$$\lVert A\rVert_{\square} = \max_{S \subseteq [m], T \subseteq [n]} \left| \sum_{i \in S, j \in T} A_{ij} \right|$$
 
 CutNorm.jl relaxes the combinatorial problem to a continuous bilinear program over $[0, 1]^m \times [0, 1]^n$ and solves it with a multistart strategy using quasi-random (Sobol) initial points. It can also solve the problem **exactly** — either by brute-force enumeration, or by formulating it as an integer or quadratic program and handing it to a solver of your choice through JuMP.
 
@@ -64,7 +63,7 @@ The parametric type `S` denotes a specific subsolver.
 |---|---|
 | `AlternatingLinearSearch` | Fast coordinate-descent alternating between $s$ and $t$. **(default)** |
 | `TronSolver` | Trust-region Newton method (from JSOSolvers.jl). Most accurate locally. |
-| `GreedySolver` | Greedy single-coordinate flip with incremental gradient updates. |
+| `GreedySolver` | Greedy single-coordinate flip with incremental gradient updates. *(not recommended)* |
 
 
 ### Exact Methods
