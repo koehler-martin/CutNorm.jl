@@ -3,7 +3,6 @@
 [![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://koehler-martin.github.io/CutNorm.jl/stable)
 [![Development documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://koehler-martin.github.io/CutNorm.jl/dev)
 [![Test workflow status](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Test.yml/badge.svg?branch=main)](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Test.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/koehler-martin/CutNorm.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/koehler-martin/CutNorm.jl)
 [![Docs workflow Status](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Docs.yml/badge.svg?branch=main)](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Docs.yml?query=branch%3Amain)
 [![BestieTemplate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JuliaBesties/BestieTemplate.jl/main/docs/src/assets/badge.json)](https://github.com/JuliaBesties/BestieTemplate.jl)
 
@@ -239,6 +238,8 @@ This package was written by [Martin Köhler](https://www.tu-braunschweig.de/en/m
 Funded by the European Union through ERC Consolidator Grant SCARCE ([101087662](https://cordis.europa.eu/project/id/101087662)).
 
 Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Research Council Executive Agency. Neither the European Union nor the granting authority can be held responsible for them.
+
+**Note:** Parts of this package's code and documentation were written with AI assistance (Anthropic Claude) and subsequently reviewed by a human.
 
 ## References
 Frieze, A., Kannan, R. *Quick Approximation to Matrices and Applications*. Combinatorica 19, 175–220 (1999). https://doi.org/10.1007/s004930050052

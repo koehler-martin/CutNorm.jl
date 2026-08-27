@@ -32,7 +32,7 @@ back to the original size.
 # Examples
 
 ```julia
-sol = cutnorm(A; method = MultistartAugmented{GreedySolver}(), max_restarts = 500)
+sol = cutnorm(A; method = MultistartAugmented{TronSolver}(), max_restarts = 500)
 ```
 
 See also [`MultistartSigned`](@ref), [`MultistartAugmentedSolver`](@ref),

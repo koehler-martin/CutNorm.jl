@@ -26,8 +26,6 @@ sol = cutnorm(A; method = ILP(HiGHS.Optimizer))     # exact, via a MILP solver
 For repeated solves of the same matrix, build a solver — [`MultistartSignedSolver`](@ref),
 [`MultistartAugmentedSolver`](@ref), [`BruteForceSolver`](@ref), [`INLPSolver`](@ref),
 [`ILPSolver`](@ref), [`QUBOSolver`](@ref) — and call [`solve!`](@ref) on it.
-
-See the documentation at <https://koehler-martin.github.io/CutNorm.jl> for details.
 """
 module CutNorm
 

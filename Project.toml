@@ -1,9 +1,6 @@
 name = "CutNorm"
 uuid = "96b8343c-58ad-55ba-b7ce-8a87c9ec6d10"
-authors = [
-    "Martin Köhler <martin.koehler1(at)tu-bs.de>",
-    "Christian Kirches <c.kirches(at)tu-bs.de>",
-]
+authors = ["Martin Köhler <martin.koehler1(at)tu-bs.de>", "Christian Kirches <c.kirches(at)tu-bs.de>"]
 version = "0.1.0"
 
 [workspace]
