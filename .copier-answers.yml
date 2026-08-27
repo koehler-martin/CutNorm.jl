@@ -1,6 +1,6 @@
 # Changes here will be overwritten by Copier
 Authors: Martin Köhler, Christian Kirches
-JuliaMinVersion: '1.12'
+JuliaMinVersion: '1.10'
 License: MIT
 LicenseCopyrightHolders: Martin Köhler, Christian Kirches
 PackageName: CutNorm
