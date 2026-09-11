@@ -1,12 +1,38 @@
 # Changes here will be overwritten by Copier
+AddAgentsMd: false
+AddAllcontributors: false
+AddChangelog: false
+AddCitationCFF: false
+AddCodeOfConduct: false
+AddContributionDocs: true
+AddCopierCI: false
+AddDocs: true
+AddDocsCI: true
+AddFormatterAndLinterConfigFiles: false
+AddGitHubPRTemplate: false
+AddGitHubTemplates: false
+AddLintCI: false
+AddLychee: false
+AddMacToCI: false
+AddPrecommit: false
+AddTagBotCI: true
+AddTestCI: true
+AddVSCodeRecommendations: false
+AddWinToCI: false
 Authors: Martin Köhler, Christian Kirches
+CheckExplicitImports: false
+GitHubActionVersionAutoUpdate: dependabot
+JuliaCompatAutoUpdate: dependabot
+JuliaMinCIVersion: lts
 JuliaMinVersion: '1.10'
 License: MIT
 LicenseCopyrightHolders: Martin Köhler, Christian Kirches
 PackageName: CutNorm
 PackageOwner: koehler-martin
 PackageUUID: 96b8343c-58ad-55ba-b7ce-8a87c9ec6d10
-StrategyConfirmIncluded: false
+RunJuliaNightlyOnCI: false
+StrategyConfirmIncluded: true
 StrategyLevel: 1
 StrategyReviewExcluded: true
+TestingStrategy: basic
 _src_path: C:\.julia\packages\BestieTemplate\MPEqY
