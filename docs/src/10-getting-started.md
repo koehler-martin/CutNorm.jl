@@ -107,6 +107,29 @@ julia> sol = cutnorm(A; max_restarts = 100, print_level = 1);
   Max time:          3600.0s
 ```
 
+## Large matrices
+
+For large matrices, [`TabuSearch`](@ref) is usually the better heuristic.
+It adds or removes one row or column per iteration at a cost of only ``O(m + n)``, and runs independent searches in parallel, one per Julia thread, so start Julia with several threads (`julia -t auto`).
+Unlike the multistart methods it has no natural end, so it runs until a limit is reached, by default for 10 seconds:
+
+```julia
+sol = cutnorm(A; method = TabuSearch())                    # 10 s on all threads
+sol = cutnorm(A; method = TabuSearch(), max_time = 300.0)  # a larger budget
+```
+
+With an iteration limit instead of a time limit, the run is reproducible for a given `seed`:
+
+```jldoctest tour
+julia> sol = cutnorm(A; method = TabuSearch(), max_iter = 1000, ntasks = 2, seed = 1);
+
+julia> sol.value, sol.iterations, sol.termination_status
+(4.0, 2000, :max_iter)
+```
+
+`max_iter` applies to each of the `ntasks` searches, so two searches did 2000 iterations in total.
+See [Methods](20-methods.md#Tabu-search) for how the search works.
+
 ## An exact answer
 
 For small matrices you can skip the heuristic entirely. [`BruteForce`](@ref) needs no

@@ -42,6 +42,8 @@ julia> findall(isone, sol.S), findall(isone, sol.T)
 |:-----------------|:-------------------------------------------------------------------|
 | `:optimal`       | The method finished and `value` is the exact cut norm               |
 | `:max_restarts`  | The multistart budget was exhausted                                |
+| `:max_iter`      | The tabu search did `max_iter` iterations in every search           |
+| `:target`        | A tabu search reached the `target` value                           |
 | `:max_time`      | The time limit hit; `value` is the best found so far                |
 | `:unknown`       | The solution has not been used yet                                 |
 | other `Symbol`   | A JuMP/MOI status name, for the solver-based methods                |
@@ -92,6 +94,33 @@ julia> sol.all_solutions[1].objective
 ```
 
 `best_initial_guess` has length `m + n` for the signed method and `m + n + 2` for the augmented one, matching the model each of them solves.
+
+## Tabu search solutions
+
+[`TabuSearchSolution`](@ref) reports the parallel searches.
+The counters are summed over all searches, while the `best_*` fields refer to the search that produced `value`.
+
+| Field            | Description                                                          |
+|:-----------------|:---------------------------------------------------------------------|
+| `sign`           | Sign ``\pm 1`` of the sum of `A` over `S × T`                         |
+| `iterations`     | Number of flips, summed over all searches                             |
+| `perturbations`  | Number of perturbations of the elite, summed over all searches        |
+| `restarts`       | Number of random restarts, summed over all searches                   |
+| `best_task`      | Index of the search that produced `value`                             |
+| `best_iteration` | Iteration of that search that produced `value`                        |
+| `improvements`   | How often the best value over all searches improved, checked at the end of every phase |
+| `time_to_best`   | Seconds from the start of the solve until `value` was found           |
+
+```jldoctest sol
+julia> sol = cutnorm(A; method = TabuSearch(), max_iter = 1000, ntasks = 2, seed = 1);
+
+julia> sol.value, sol.iterations, sol.termination_status
+(4.0, 2000, :max_iter)
+```
+
+`time_to_best` compared with `runtime` is the practical way to size the budget, much like `best_restart` for the multistart methods: if the best value was found early, a shorter run would have done.
+When several searches reach the same value, `best_task` is the one that got there in the fewest iterations.
+`improvements` depends on the order in which the searches end their phases, so unlike the other fields it can differ between two otherwise identical runs.
 
 ## Brute-force solutions
 

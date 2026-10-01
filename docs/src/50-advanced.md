@@ -15,6 +15,7 @@ Every method has a solver type, and its constructor takes the same keyword argum
 |:------------------------------|:--------------------------------------|
 | [`MultistartSigned`](@ref)    | [`MultistartSignedSolver`](@ref)      |
 | [`MultistartAugmented`](@ref) | [`MultistartAugmentedSolver`](@ref)   |
+| [`TabuSearch`](@ref)          | [`TabuSearchSolver`](@ref)            |
 | [`BruteForce`](@ref)          | [`BruteForceSolver`](@ref)            |
 | [`INLP`](@ref)                | [`INLPSolver`](@ref)                  |
 | [`ILP`](@ref)                 | [`ILPSolver`](@ref)                   |
@@ -49,6 +50,17 @@ One thing to keep in mind for the multistart solvers: the Sobol sequence keeps a
 A second `solve!` therefore explores *different* starting points than the first.
 It is useful if you want to continue searching, surprising if you expected the same answer twice.
 Build a fresh solver when you want to repeat a run exactly.
+
+The [`TabuSearchSolver`](@ref) behaves the other way round: every [`solve!`](@ref) reseeds its searches from `seed`, so with `max_iter` as the only binding limit a second call repeats the first.
+Pass a new `seed` to search differently, or continue from the previous result with `S0` and `T0`.
+The solver stores a copy of the matrix and its transpose, plus one workspace per search, which are reused across calls; only increasing `ntasks` adds workspaces.
+Since settings persist, a limit set in one call, for example `max_iter`, also applies to the following ones until you change it.
+
+```julia
+solver = TabuSearchSolver(A; max_time = 60.0)
+sol = solve!(solver)
+sol = solve!(solver; S0 = sol.S, T0 = sol.T, max_time = 600.0)  # continue from sol
+```
 
 For the JuMP-based solvers, reuse matters more, because the model is constructed in the solver's constructor and only `JuMP.optimize!` runs again:
 

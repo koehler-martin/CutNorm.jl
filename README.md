@@ -7,7 +7,7 @@
 [![Docs workflow Status](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Docs.yml/badge.svg?branch=main)](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Docs.yml?query=branch%3Amain)
 [![BestieTemplate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/JuliaBesties/BestieTemplate.jl/main/docs/src/assets/badge.json)](https://github.com/JuliaBesties/BestieTemplate.jl)
 
-A Julia package for computing the **cut norm** of matrices using multistart nonlinear optimization, exact brute-force enumeration, or exact optimization-based formulations solved with [JuMP](https://jump.dev/).
+A Julia package for computing the **cut norm** of matrices using multistart nonlinear optimization, a parallel tabu search, exact brute-force enumeration, or exact optimization-based formulations solved with [JuMP](https://jump.dev/).
 
 Given a matrix $A \in \mathbb{R}^{m \times n}$, the cut norm is defined as
 
@@ -45,6 +45,9 @@ sol.T       # optimal column indicator
 This package provides two **multistart heuristics** that repeatedly solve a relaxation of a binary bilinear formulation of the cut norm: `MultistartSigned{S}` and `MultistartAugmented{S}`.
 The following subsolvers `S` are available: `AlternatingLinearSearch`, `TronSolver`, and `GreedySolver`.
 
+For **large matrices**, `TabuSearch` works on the row and column sets directly: each iteration adds or removes the best row or column that is not tabu, at a cost of only $O(m + n)$ per iteration, and independent searches run in parallel on all Julia threads (start Julia with `julia -t auto`).
+The search runs until a limit is reached, by default for 10 seconds.
+
 **Exact solutions** can be computed via `BruteForce` or with JuMP, using a solver compatible with the chosen problem formulation: `INLP` (Integer Nonlinear Program), `ILP` (Integer Linear Program), and `QUBO` (Quadratic Unconstrained Binary Optimization Problem).
 
 ```julia
@@ -57,6 +60,11 @@ sol = cutnorm(A; method=MultistartSigned{TronSolver}())
 # Greedy solver, scaled by m*n, limited to 500 restarts
 sol = cutnorm(A; method=MultistartAugmented{GreedySolver}(),
               scaled=true, max_restarts=500)
+
+# Parallel tabu search, for large matrices
+sol = cutnorm(A; method=TabuSearch())                          # 10 s on all threads
+sol = cutnorm(A; method=TabuSearch(), max_time=300.0)          # larger time budget
+sol = cutnorm(A; method=TabuSearch(), max_iter=10^6, seed=1)   # reproducible
 
 # Exact brute force (small matrices only)
 sol = cutnorm(A; method=BruteForce())
@@ -80,7 +88,9 @@ All keyword arguments are forwarded to the respective settings type:
 | Option | Default | Description |
 |---|---|---|
 | `max_restarts::Int` | `1000` | Maximum number of restarts (multistart heuristics only) |
-| `max_time::Float64` | `3600.0` | Wall-clock time limit in seconds |
+| `max_iter::Int` | `typemax(Int)` | Iteration limit of each search (tabu search only) |
+| `ntasks::Int` | `Threads.nthreads()` | Number of parallel searches (tabu search only) |
+| `max_time::Float64` | `3600.0` | Wall-clock time limit in seconds (`10.0` for the tabu search) |
 | `scaled::Bool` | `false` | Divide the result by $m \cdot n$ |
 | `print_level::Int` | `0` | Verbosity of solver output |
 

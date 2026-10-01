@@ -9,7 +9,8 @@ JuMP/NLP model, preallocated work vectors, and a settings object — so that
 [`solve!`](@ref) can be called repeatedly without rebuilding it.
 
 Concrete subtypes: [`MultistartAugmentedSolver`](@ref), [`MultistartSignedSolver`](@ref),
-[`BruteForceSolver`](@ref), [`INLPSolver`](@ref), [`ILPSolver`](@ref), [`QUBOSolver`](@ref).
+[`BruteForceSolver`](@ref), [`INLPSolver`](@ref), [`ILPSolver`](@ref), [`QUBOSolver`](@ref),
+[`TabuSearchSolver`](@ref).
 """
 abstract type AbstractSolver{T<:AbstractFloat} end
 
@@ -23,7 +24,8 @@ All solution types carry at least the fields `value` (the cut norm estimate), `S
 `termination_status`.
 
 Concrete subtypes: [`MultistartAugmentedSolution`](@ref), [`MultistartSignedSolution`](@ref),
-[`BruteForceSolution`](@ref), [`INLPSolution`](@ref), [`ILPSolution`](@ref), [`QUBOSolution`](@ref).
+[`BruteForceSolution`](@ref), [`INLPSolution`](@ref), [`ILPSolution`](@ref), [`QUBOSolution`](@ref),
+[`TabuSearchSolution`](@ref).
 """
 abstract type AbstractSolution{T<:AbstractFloat} end
 
@@ -36,7 +38,8 @@ this is how keyword arguments passed to [`cutnorm`](@ref) or [`solve!`](@ref) re
 the solver.
 
 Concrete subtypes: [`MultistartSettings`](@ref), [`BruteForceSettings`](@ref),
-[`INLPSettings`](@ref), [`ILPSettings`](@ref), [`QUBOSettings`](@ref).
+[`INLPSettings`](@ref), [`ILPSettings`](@ref), [`QUBOSettings`](@ref),
+[`TabuSearchSettings`](@ref).
 """
 abstract type AbstractSettings end
 

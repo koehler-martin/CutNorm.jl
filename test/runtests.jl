@@ -5,6 +5,8 @@ using LinearAlgebra
 using NLPModels
 using SolverCore
 using DelimitedFiles
+using Random
+using SparseArrays
 
 @testset "Sanity Check" begin
     A = [1.0 1 1 1 1;
@@ -60,3 +62,5 @@ include("inlp.jl")
 include("ilp.jl")
 
 include("qubo.jl")
+
+include("tabu_search.jl")
