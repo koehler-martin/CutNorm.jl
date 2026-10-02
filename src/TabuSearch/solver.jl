@@ -303,7 +303,7 @@ function tabu_search!(ws::TabuSearchWorkspace{T}, A::AbstractMatrix{T}, At::Abst
 
     perturbations = 0
     restarts = 0
-    it = 0
+    iter = 0
     last = 0    # last iteration that improved the elite or diversified
     fails = 0   # perturbations in a row that did not improve the elite
 
@@ -312,8 +312,8 @@ function tabu_search!(ws::TabuSearchWorkspace{T}, A::AbstractMatrix{T}, At::Abst
     phase_best = G    # best value of the phase
 
     status = best + tol >= target ? :target : :max_iter
-    while status === :max_iter && it < max_iter
-        it += 1
+    while status === :max_iter && iter < max_iter
+        iter += 1
 
         # Scan all m + n flips: k is the best admissible flip, f the best flip overall.
         k = 0
@@ -326,7 +326,7 @@ function tabu_search!(ws::TabuSearchWorkspace{T}, A::AbstractMatrix{T}, At::Abst
                 fval = val
                 f = i
             end
-            if val > kval && (tabu_until[i] < it || val > elite + tol)
+            if val > kval && (tabu_until[i] < iter || val > elite + tol)
                 kval = val
                 k = i
             end
@@ -337,7 +337,7 @@ function tabu_search!(ws::TabuSearchWorkspace{T}, A::AbstractMatrix{T}, At::Abst
                 fval = val
                 f = m + j
             end
-            if val > kval && (tabu_until[m+j] < it || val > elite + tol)
+            if val > kval && (tabu_until[m+j] < iter || val > elite + tol)
                 kval = val
                 k = m + j
             end
@@ -359,21 +359,21 @@ function tabu_search!(ws::TabuSearchWorkspace{T}, A::AbstractMatrix{T}, At::Abst
             u .+= d .* view(A, :, j)
         end
         G = kval
-        tabu_until[k] = it + tenure + rand(rng, 0:tenure_rand)
+        tabu_until[k] = iter + tenure + rand(rng, 0:tenure_rand)
         (G > phase_best) && (phase_best = G)
 
         if G > elite + tol
             elite = G
             copyto!(es, s)
             copyto!(et, t)
-            last = it
+            last = iter
             fails = 0
             if G > best + tol
                 best = G
                 copyto!(bs, s)
                 copyto!(bt, t)
                 best_sign = σ
-                best_iteration = it
+                best_iteration = iter
                 time_to_best = (time_ns() - t0) / 1e9
                 if best + tol >= target
                     status = :target
@@ -382,8 +382,8 @@ function tabu_search!(ws::TabuSearchWorkspace{T}, A::AbstractMatrix{T}, At::Abst
             end
         end
 
-        if it - last > stall
-            tabu_end_phase!(incumbent, io, pl, id, phase, it - phase_start, σ * phase_best, best, tol, scale, t0)
+        if iter - last > stall
+            tabu_end_phase!(incumbent, io, pl, id, phase, iter - phase_start, σ * phase_best, best, tol, scale, t0)
             fails += 1
             if fails > max_perturbations
                 # Restart at a random point with the opposite sign.
@@ -410,15 +410,15 @@ function tabu_search!(ws::TabuSearchWorkspace{T}, A::AbstractMatrix{T}, At::Abst
             end
             G = σ * tabu_recompute!(u, v, A, At, s, t)
             fill!(tabu_until, 0)
-            last = it
+            last = iter
             phase += 1
-            phase_start = it
+            phase_start = iter
             phase_best = G
-        elseif it % refresh == 0
+        elseif iter % refresh == 0
             G = σ * tabu_recompute!(u, v, A, At, s, t)
         end
 
-        if (it & 1023) == 0
+        if (iter & 1023) == 0
             if incumbent.stop[]
                 status = :stopped
             elseif (time_ns() - t0) / 1e9 >= max_time
@@ -427,9 +427,9 @@ function tabu_search!(ws::TabuSearchWorkspace{T}, A::AbstractMatrix{T}, At::Abst
         end
     end
     (status === :target) && (incumbent.stop[] = true)
-    tabu_end_phase!(incumbent, io, pl, id, phase, it - phase_start, σ * phase_best, best, tol, scale, t0)
+    tabu_end_phase!(incumbent, io, pl, id, phase, iter - phase_start, σ * phase_best, best, tol, scale, t0)
 
-    return (value=best, sign=best_sign > 0 ? Int8(1) : Int8(-1), iterations=it,
+    return (value=best, sign=best_sign > 0 ? Int8(1) : Int8(-1), iterations=iter,
         perturbations=perturbations, restarts=restarts, best_iteration=best_iteration,
         time_to_best=time_to_best, status=status)
 end
