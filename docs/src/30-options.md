@@ -27,11 +27,11 @@ ERROR: ArgumentError: unknown setting: max_iterations. Allowed keywords: (:max_r
 
 | Keyword       | Type      | Default  | Description                                        |
 |:--------------|:----------|:---------|:---------------------------------------------------|
-| `max_time`    | `Float64` | `3600.0` | Wall-clock time limit in seconds                   |
+| `max_time`    | `Float64` | `3600.0` | Wall-clock time limit in seconds, `10.0` for [`TabuSearch`](@ref) |
 | `scaled`      | `Bool`    | `false`  | Divide the reported value by ``m \cdot n``         |
 | `print_level` | `Int`     | `0`      | Verbosity, `0` is silent                           |
 
-`max_time` is checked by the solver itself for the multistart and brute-force methods; for the JuMP-based methods it is handed to the solver via `JuMP.set_time_limit_sec`.
+`max_time` is checked by the solver itself for the multistart, tabu search and brute-force methods; for the JuMP-based methods it is handed to the solver via `JuMP.set_time_limit_sec`.
 Either way, a time-out yields `termination_status == :max_time` and a value that is only a lower bound.
 
 `scaled` affects only the reported `value` — `S` and `T` are unchanged.
@@ -67,6 +67,68 @@ It is useful for studying the distribution of local optima, but it allocates two
 
 Level `2` is the useful setting for long runs: the output stays short while still
 showing that the solver is alive.
+
+## Tabu search
+
+Settings object: [`TabuSearchSettings`](@ref), used by [`TabuSearch`](@ref).
+With ``N = m + n`` the number of bits of the search:
+
+| Keyword             | Type                          | Default              | Description                                                       |
+|:--------------------|:------------------------------|:---------------------|:------------------------------------------------------------------|
+| `max_iter`          | `Int`                         | `typemax(Int)`       | Iteration limit of each search                                    |
+| `max_time`          | `Float64`                     | `10.0`               | Wall-clock time limit in seconds                                  |
+| `target`            | `Float64`                     | `Inf`                | Stop all searches once one of them reaches this value             |
+| `tenure`            | `Int`                         | `0`                  | Base tabu tenure; `0` picks ``\max(1, \operatorname{round}(0.005 N))`` |
+| `tenure_rand`       | `Int`                         | `10`                 | A flipped bit stays tabu for `tenure + rand(0:tenure_rand)` iterations |
+| `stall`             | `Int`                         | `0`                  | Iterations without improvement before diversifying; `0` picks ``\max(100, 5N)`` |
+| `perturb_frac`      | `Float64`                     | `0.1`                | Fraction of the ``N`` bits flipped when the elite is perturbed     |
+| `max_perturbations` | `Int`                         | `3`                  | Failed perturbations in a row before a random restart with the opposite sign |
+| `refresh`           | `Int`                         | `0`                  | Recompute ``A t`` and ``A^\top s`` every `refresh` iterations; `0` picks ``\max(1000, 10N)`` |
+| `ntasks`            | `Int`                         | `Threads.nthreads()` | Number of independent searches, run in parallel                   |
+| `seed`              | `UInt64`                      | random               | Search `k` is seeded with `seed + k`                              |
+| `S0`, `T0`          | `Union{Nothing,Vector{Bool}}` | `nothing`            | Initial row and column indicators; `nothing` starts at random      |
+| `scaled`            | `Bool`                        | `false`              | Divide the value by ``m \cdot n``                                 |
+| `print_level`       | `Int`                         | `0`                  | Verbosity, see below                                              |
+
+The search always runs until a limit is hit: each search stops after `max_iter` iterations or `max_time` seconds, and all of them stop as soon as one reaches `target`.
+`termination_status` becomes `:target`, `:max_iter` or `:max_time` accordingly.
+`target` is compared with the value in the units it is reported in, i.e. divided by ``m \cdot n`` if `scaled = true`.
+Since there is no iteration limit by default, `max_time` defaults to 10 seconds rather than the hour of the other methods.
+`tenure_rand` is clamped to `0:N÷4`, and the number of perturbed bits to `1:N`.
+
+Keep `ntasks ≤ Threads.nthreads()`: a search never yields its thread, so surplus searches only start once others have finished, that is, after the time limit.
+Every [`solve!`](@ref) reseeds the searches from `seed`, so repeated solves with the same `seed` and `max_iter` as the only binding limit return the same result.
+The default `seed` is drawn once, when the settings are created.
+
+`S0` and `T0` accept any vector with entries in ``\{0, 1\}``, for example `sol.S` and `sol.T` of another method.
+Every search starts from them, and if both are given, the odd searches take the sign of the sum over `S0 × T0` and the even ones the opposite sign.
+A wrong length raises a `DimensionMismatch`.
+
+### Print levels
+
+The log is printed while the searches run, one row per *phase*: the iterations of a search from its start, a perturbation or a restart up to the next one, or until it stops.
+A phase is the counterpart of one restart of the multistart methods.
+
+| Level | Output                                                                     |
+|:------|:---------------------------------------------------------------------------|
+| `0`   | Silent (default)                                                           |
+| `1`   | Header, footer, and a row whenever a phase improves the best value          |
+| `2`   | As `1`, plus logarithmically spaced phases of every search: 1–5, then every 10th, 100th, … |
+| `3`   | A row for every phase                                                      |
+
+```text
+  Thread    Phase    Best Value   Improv       Iter           Obj   Time (s)
+--------------------------------------------------------------------------------
+       1        1    1.1079e+04        1       9088    1.1079e+04       0.43  *
+       3        1    1.1108e+04        2      22738    1.1108e+04       0.46  *
+```
+
+`Thread` is the search, from `1` to `ntasks`, followed by its phase number, the best value over all searches and how often it improved, and the iterations of the phase.
+`Obj` is the sum ``s^\top A t`` at the best point of the phase; its sign is the sign the phase searched with.
+A `*` marks the phases that improved the best value.
+After all searches have stopped, a summary row per search and the footer follow.
+A search prints at the end of its phases, so its rows are at least `stall` iterations apart, which on very large matrices can be several seconds.
+Lowering `stall` gives more frequent output, but also makes the search diversify more often.
 
 ## Brute force
 

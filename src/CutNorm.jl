@@ -9,8 +9,9 @@ Compute the cut norm of a matrix,
 ```
 
 either heuristically, by multistart nonlinear optimization of the bilinear relaxation
-over `[0,1]^m × [0,1]^n`, or exactly, by enumeration or by an integer/quadratic
-program solved through [JuMP](https://jump.dev/).
+over `[0,1]^m × [0,1]^n` or by a tabu search over the row and column sets, or exactly,
+by enumeration or by an integer/quadratic program solved through
+[JuMP](https://jump.dev/).
 
 The entry point is [`cutnorm`](@ref); the method is chosen with its `method` keyword,
 and all further keywords configure the settings object of that method:
@@ -19,19 +20,22 @@ and all further keywords configure the settings object of that method:
 using CutNorm
 
 sol = cutnorm(A)                                    # default heuristic
+sol = cutnorm(A; method = TabuSearch())             # parallel heuristic, 10 s by default
 sol = cutnorm(A; method = BruteForce())             # exact, small matrices
 sol = cutnorm(A; method = ILP(HiGHS.Optimizer))     # exact, via a MILP solver
 ```
 
 For repeated solves of the same matrix, build a solver — [`MultistartSignedSolver`](@ref),
 [`MultistartAugmentedSolver`](@ref), [`BruteForceSolver`](@ref), [`INLPSolver`](@ref),
-[`ILPSolver`](@ref), [`QUBOSolver`](@ref) — and call [`solve!`](@ref) on it.
+[`ILPSolver`](@ref), [`QUBOSolver`](@ref), [`TabuSearchSolver`](@ref) — and call
+[`solve!`](@ref) on it.
 """
 module CutNorm
 
 # Standard library
 using LinearAlgebra: mul!, dot, rmul!
 using Printf: @printf
+using Random: Xoshiro, seed!, rand!, randperm!
 
 # External packages
 import JuMP
@@ -78,9 +82,13 @@ export ILPSolver, ILPSolution
 export QUBOSettings
 export QUBOSolver, QUBOSolution
 
+# TabuSearch
+export TabuSearchSettings
+export TabuSearchSolver, TabuSearchSolution
+
 # Top-level API
 export solve!
-export cutnorm, MultistartAugmented, MultistartSigned, BruteForce, INLP, ILP, QUBO
+export cutnorm, MultistartAugmented, MultistartSigned, TabuSearch, BruteForce, INLP, ILP, QUBO
 
 # Source files
 include("abstract_types.jl")
@@ -125,6 +133,11 @@ include("QUBO/settings.jl")
 include("QUBO/solution.jl")
 include("QUBO/printing.jl")
 include("QUBO/solver.jl")
+
+include("TabuSearch/settings.jl")
+include("TabuSearch/solution.jl")
+include("TabuSearch/printing.jl")
+include("TabuSearch/solver.jl")
 
 include("methods.jl")
 

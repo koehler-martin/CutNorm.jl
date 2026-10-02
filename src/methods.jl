@@ -9,6 +9,7 @@ algorithm and, for the JuMP-based methods, the optimizer to use.
 |:------------------------------|:----------|:------------------------------------------|
 | [`MultistartSigned`](@ref)    | heuristic | default                                   |
 | [`MultistartAugmented`](@ref) | heuristic |                                           |
+| [`TabuSearch`](@ref)          | heuristic | parallel, runs until a limit is reached   |
 | [`BruteForce`](@ref)          | exact     | exponential, no external solver needed    |
 | [`INLP`](@ref)                | exact     | needs a global MINLP solver               |
 | [`ILP`](@ref)                 | exact     | works with any MILP solver                |
@@ -64,6 +65,41 @@ See also [`MultistartAugmented`](@ref), [`MultistartSignedSolver`](@ref),
 [`MultistartSettings`](@ref).
 """
 struct MultistartSigned{S} <: AbstractCutNormMethod end
+
+"""
+    TabuSearch()
+
+Tabu search heuristic, to be passed as `method` to [`cutnorm`](@ref).
+
+The search works directly on the row and column sets. Each iteration adds or removes
+the one row or column that gives the best value, even if that value is worse, except
+for rows and columns changed in the last few iterations: those are *tabu*, which keeps
+the search from undoing its own moves and lets it walk out of local optima. When the
+search stalls, it perturbs the best sets of its current episode, and after repeated
+failures restarts at random with the opposite sign, so that sums of both signs are
+searched. One iteration costs `O(m + n)`.
+
+Several independent searches run in parallel, one per Julia thread by default, so start
+Julia with several threads (e.g. `julia -t auto`) to profit from them. Sparse matrices
+are kept sparse.
+
+The search has no natural end: it runs until `max_iter` iterations, `max_time` seconds
+(**10 s by default**) or the `target` value is reached, whichever comes first. The
+result is a lower bound on the cut norm together with the sets attaining it. All
+keywords are described in [`TabuSearchSettings`](@ref).
+
+# Examples
+
+```julia
+sol = cutnorm(A; method = TabuSearch(), max_time = 30.0)
+sol = cutnorm(A; method = TabuSearch(), max_iter = 10_000, seed = 1)   # reproducible
+sol = cutnorm(A; method = TabuSearch(), S0 = sol.S, T0 = sol.T)        # warm start
+```
+
+See also [`TabuSearchSolver`](@ref), [`TabuSearchSettings`](@ref),
+[`TabuSearchSolution`](@ref).
+"""
+struct TabuSearch <: AbstractCutNormMethod end
 
 """
     SDPRelaxation()
@@ -198,11 +234,13 @@ the solver yourself and call [`solve!`](@ref) on it.
 
 - `method`: which algorithm to use, see [`AbstractCutNormMethod`](@ref). The default,
   [`MultistartSigned`](@ref) with [`AlternatingLinearSearch`](@ref), is a heuristic:
-  it returns a lower bound on the cut norm together with the sets attaining it.
-  [`BruteForce`](@ref), [`INLP`](@ref), [`ILP`](@ref) and [`QUBO`](@ref) are exact.
+  it returns a lower bound on the cut norm together with the sets attaining it, and so
+  does [`TabuSearch`](@ref). [`BruteForce`](@ref), [`INLP`](@ref), [`ILP`](@ref) and
+  [`QUBO`](@ref) are exact.
 - all remaining keywords are forwarded to the settings object of the chosen method:
-  [`MultistartSettings`](@ref), [`BruteForceSettings`](@ref), [`INLPSettings`](@ref),
-  [`ILPSettings`](@ref) or [`QUBOSettings`](@ref). An unknown keyword raises an
+  [`MultistartSettings`](@ref), [`TabuSearchSettings`](@ref),
+  [`BruteForceSettings`](@ref), [`INLPSettings`](@ref), [`ILPSettings`](@ref) or
+  [`QUBOSettings`](@ref). An unknown keyword raises an
   `ArgumentError` listing the accepted ones. The keywords common to all methods are
   `max_time`, `scaled` and `print_level`.
 
@@ -294,6 +332,11 @@ end
 
 function _cutnorm(A, ::MultistartSigned{S}; kwargs...) where S
     solver = MultistartSignedSolver(A, S; kwargs...)
+    return solve!(solver)
+end
+
+function _cutnorm(A, ::TabuSearch; kwargs...)
+    solver = TabuSearchSolver(A; kwargs...)
     return solve!(solver)
 end
 

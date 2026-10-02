@@ -15,7 +15,7 @@ For a matrix ``A \in \mathbb{R}^{m \times n}`` the cut norm is
 
 Computing it is NP-hard, so CutNorm.jl offers two families of methods:
 
-- **heuristic** — the combinatorial problem is relaxed to a bilinear program over ``[0,1]^m \times [0,1]^n`` and solved from many quasi-random (Sobol) starting points. Every local solution is a feasible assignment of rows and columns, so the result is always a lower bound attained by concrete sets ``S`` and ``T``.
+- **heuristic** — either the combinatorial problem is relaxed to a bilinear program over ``[0,1]^m \times [0,1]^n`` and solved from many quasi-random (Sobol) starting points, or a tabu search moves through the row and column sets directly, adding or removing one row or column at a time, with independent searches running in parallel on all threads. Every heuristic result is a feasible assignment of rows and columns, so it is always a lower bound attained by concrete sets ``S`` and ``T``.
 - **exact** — by exhaustive enumeration, or by handing an integer or quadratic formulation to a solver of your choice through [JuMP](https://jump.dev/).
 
 ## Installation

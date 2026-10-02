@@ -18,6 +18,7 @@ sol = cutnorm(A; method = MultistartSigned{TronSolver}())
 |:------------------------------------------------|:----------------|:----------------------------------|:---------|
 | [`MultistartSigned{S}()`](@ref MultistartSigned)       | lower bound  | nothing                     | the default; any size |
 | [`MultistartAugmented{S}()`](@ref MultistartAugmented) | lower bound  | nothing                     | one subproblem per restart is preferable |
+| [`TabuSearch()`](@ref TabuSearch)               | lower bound  | nothing, but profits from threads | large matrices; a fixed time budget |
 | [`BruteForce()`](@ref BruteForce)               | exact        | nothing                           | `m + n` small (say ≤ 25) |
 | [`ILP(optimizer)`](@ref ILP)                    | exact        | MILP solver                   | exact answers beyond enumeration |
 | [`INLP(optimizer)`](@ref INLP)                  | exact        | global MINLP solver               | comparing formulations |
@@ -28,7 +29,7 @@ The exact methods return the true cut norm, but only if they ran to completion: 
 
 ## The relaxation
 
-Both heuristic methods work on the bilinear relaxation of the combinatorial problem,
+The two multistart methods work on the bilinear relaxation of the combinatorial problem,
 
 ```math
 \max_{s \in [0,1]^m,\, t \in [0,1]^n} \left| s^\top A\, t \right| ,
@@ -38,7 +39,7 @@ whose objective is linear in each block of variables separately.
 The maximum is therefore attained at a vertex of the box, i.e. at a genuine ``\{0,1\}`` indicator pair, which is why rounding a local solution always yields a feasible solution.
 Since the problem is nonconvex, the local solutions differ, and the package attacks that with a multistart strategy: the starting points come from a Sobol sequence, so the box is covered quasi-uniformly and the results are reproducible without a seed.
 
-The absolute value is what the two heuristic methods handle differently.
+The absolute value is what the two multistart methods handle differently.
 
 ### The signed method
 
@@ -84,6 +85,59 @@ Any other `AbstractOptimizationSolver` raises an error naming the three.
 
 Since all three end at a vertex, they differ in how thoroughly each restart is explored rather than in the kind of answer they give.
 If a fixed time budget matters, the cheap subsolvers buy you more restarts; if each restart should count, `TronSolver` is the careful choice.
+
+## Tabu search
+
+[`TabuSearch`](@ref) works on the combinatorial problem itself rather than on a relaxation.
+It maximizes ``\sigma\, s^\top A t`` over indicator vectors ``s \in \{0,1\}^m``, ``t \in \{0,1\}^n`` and a sign ``\sigma = \pm 1``, and moves by flipping one bit per iteration, that is, by adding or removing a single row or column.
+In our experiments on large matrices it found better solutions than the [QUBO formulation](#The-QUBO-formulation) solved with Gurobi.
+
+```julia
+sol = cutnorm(A; method = TabuSearch())                             # 10 s on all threads
+sol = cutnorm(A; method = TabuSearch(), max_time = 300.0)           # a larger budget
+sol = cutnorm(A; method = TabuSearch(), max_iter = 10^6, seed = 1)  # reproducible
+```
+
+### Cheap moves
+
+The search keeps the products ``u = A t`` and ``v = A^\top s`` up to date.
+Flipping ``s_i`` or ``t_j`` changes the value ``G = \sigma\, s^\top A t`` to
+
+```math
+G + \sigma\, (1 - 2 s_i)\, u_i \qquad \text{or} \qquad G + \sigma\, (1 - 2 t_j)\, v_j ,
+```
+
+so the values of all ``m + n`` possible moves can be read off ``u`` and ``v``.
+Applying a move adds row ``i`` of ``A`` to ``v``, or column ``j`` to ``u``, or subtracts it.
+One iteration therefore costs ``O(m + n)``, where a single matrix-vector product would already cost ``O(mn)``.
+To keep rounding errors from accumulating, both products are recomputed from scratch every `refresh` iterations and after every perturbation and restart, and the returned value is recomputed from the returned sets.
+
+Sparse matrices are kept sparse, so the memory needed for the matrix grows with its number of nonzeros.
+
+### Tabu moves and diversification
+
+In every iteration the search applies the best move that is not tabu, even if it makes the value worse, which is how it walks out of local optima.
+The flipped bit then stays tabu for `tenure + rand(0:tenure_rand)` iterations, so the search cannot immediately undo its own moves.
+A tabu move is still allowed if it beats the elite, the best value of the current episode, and if every move is tabu, the best one is applied anyway.
+
+If the elite has not improved for `stall` iterations, the search *perturbs* it: it continues from the elite with a random fraction `perturb_frac` of all bits flipped.
+After `max_perturbations` perturbations in a row that did not improve the elite, it *restarts* at a random point with the opposite sign ``\sigma``, which starts a new episode.
+The sign switch matters, since a search with ``\sigma = +1`` can only find sets with a positive sum.
+
+### Parallel searches
+
+`ntasks` independent searches run in parallel, one per Julia thread by default, so start Julia with several threads, e.g. `julia -t auto`.
+They start with alternating signs, ``+1`` for the odd and ``-1`` for the even searches, so that sums of both signs are searched from the beginning, and the best result of all of them is returned.
+
+The search has no natural end: it stops after `max_iter` iterations per search, after `max_time` seconds, **10 s by default**, or as soon as one of the searches reaches the value `target`.
+A good solution from another method can be passed as the starting point of all searches with `S0` and `T0`:
+
+```julia
+start = cutnorm(A; max_restarts = 100)
+sol = cutnorm(A; method = TabuSearch(), S0 = start.S, T0 = start.T)
+```
+
+All keywords are listed under [Options](30-options.md#Tabu-search).
 
 ## Exact methods
 

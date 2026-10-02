@@ -40,6 +40,7 @@ cutnorm
 AbstractCutNormMethod
 MultistartSigned
 MultistartAugmented
+TabuSearch
 BruteForce
 INLP
 ILP
@@ -66,6 +67,7 @@ BruteForceSolver
 INLPSolver
 ILPSolver
 QUBOSolver
+TabuSearchSolver
 ```
 
 ### Settings
@@ -76,6 +78,7 @@ BruteForceSettings
 INLPSettings
 ILPSettings
 QUBOSettings
+TabuSearchSettings
 ```
 
 ### Solutions
@@ -87,6 +90,7 @@ BruteForceSolution
 INLPSolution
 ILPSolution
 QUBOSolution
+TabuSearchSolution
 ```
 
 ### Models
