@@ -1,6 +1,5 @@
 # CutNorm.jl
 
-[![Stable Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://koehler-martin.github.io/CutNorm.jl/stable)
 [![Development documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://koehler-martin.github.io/CutNorm.jl/dev)
 [![Test workflow status](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Test.yml/badge.svg?branch=main)](https://github.com/koehler-martin/CutNorm.jl/actions/workflows/Test.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/koehler-martin/CutNorm.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/koehler-martin/CutNorm.jl)
@@ -124,3 +123,5 @@ Views and opinions expressed are however those of the author(s) only and do not 
 Frieze, A., Kannan, R. *Quick Approximation to Matrices and Applications*. Combinatorica 19, 175–220 (1999). https://doi.org/10.1007/s004930050052
 
 Alon, N., Naor, A. *Approximating the Cut-Norm via Grothendieck's Inequality*. SIAM Journal on Computing, vol. 35, no. 4, pp. 787–803, 2006. https://doi.org/10.1137/S0097539704441629
+
+Glover, F., Ye, T., Punnen, A. P., Kochenberger, G. *Integrating tabu search and VLSN search to develop enhanced algorithms: A case study using bipartite boolean quadratic programs*. European Journal of Operational Research, vol. 251, no. 3. pp. 697–707, 2015. https://doi.org/10.1016/j.ejor.2014.09.036
